@@ -1,0 +1,6 @@
+{
+  "name": "Oral Care Centre",
+  "description": "Premium multi-speciality dental clinic and hospital in Gorakhpur with over 30 years of experience.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
