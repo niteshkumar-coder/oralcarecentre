@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Phone, 
@@ -9,6 +9,7 @@ import {
   ArrowRight, 
   ExternalLink,
   ChevronDown,
+  ChevronUp,
   Activity,
   Heart,
   Sparkles,
@@ -19,847 +20,932 @@ import {
   Cpu,
   Shield,
   MessageSquare,
-  Bookmark
+  Bookmark,
+  Menu,
+  X,
+  Calendar,
+  Smartphone,
+  Eye,
+  Check,
+  ArrowUpRight,
+  ThumbsUp,
+  Share2
 } from 'lucide-react';
 
 // Static Data and Types
-import { SERVICES, DOCTORS, TRUST_FACTS, WHY_CHOOSE_US, REVIEWS, CONTACT_DATA, CLINIC_IMAGES } from './data';
+import { SERVICES, DOCTORS, REVIEWS, CONTACT_DATA, CLINIC_IMAGES, TRUST_FACTS, WHY_CHOOSE_US } from './data';
 import { Service, Doctor } from './types';
 
 // Premium Components
 import Navbar from './components/Navbar';
-import Icon from './components/Icon';
 import ServiceCard from './components/ServiceCard';
-import ServiceModal from './components/ServiceModal';
 import DoctorCard from './components/DoctorCard';
 import ClinicGallery from './components/ClinicGallery';
+import ServiceModal from './components/ServiceModal';
 import AppointmentForm from './components/AppointmentForm';
 
+// Premium Before & After Data
+const BEFORE_AFTER_CASES = [
+  {
+    id: 'case-1',
+    title: 'Invisalign Clear Aligners',
+    desc: 'Completed in 11 months without metal wires.',
+    beforeImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
+    afterImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+    stats: '100% Alignment Restored'
+  },
+  {
+    id: 'case-2',
+    title: 'Laser Teeth Whitening',
+    desc: 'Deep ultrasonic whitening done in 45 minutes.',
+    beforeImage: 'https://images.unsplash.com/photo-1513224506828-3fa2d4b729ea?auto=format&fit=crop&q=80&w=400',
+    afterImage: 'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&q=80&w=400',
+    stats: '8 Shades Lighter'
+  },
+  {
+    id: 'case-3',
+    title: 'Full Smile Veneers Makeover',
+    desc: 'Custom porcelain veneers for chipped teeth.',
+    beforeImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400',
+    afterImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+    stats: 'Bespoke Facial Harmony'
+  }
+];
+
+// Clinic FAQs
+const CLINIC_FAQS = [
+  {
+    question: 'What are the consultation timings of the clinic?',
+    answer: 'The clinic is open from Monday to Saturday, 10:00 AM - 02:00 PM and 05:00 PM - 08:30 PM. Sundays are available from 10:00 AM - 01:30 PM by prior appointment only.'
+  },
+  {
+    question: 'How do I book a priority slot to avoid waiting?',
+    answer: 'Simply use our online Book Appointment form, call us directly, or WhatsApp us. Booking online secures your digital priority timing to ensure you are attended immediately upon arrival.'
+  },
+  {
+    question: 'Are dental implant procedures painful?',
+    answer: 'Not at all. We utilize computer-guided precision surgery and advanced local anesthetic techniques to make sure the implant placement is completely painless, rapid, and comfortable.'
+  },
+  {
+    question: 'What measures are taken for dental sterilization?',
+    answer: 'Patient safety is our highest priority. We follow strict international hygiene protocols using multi-stage medical Class-B autoclave vacuum sterilization for all clinical instruments.'
+  },
+  {
+    question: 'Do you offer instant treatment for dental emergencies?',
+    answer: 'Yes. We have a dedicated emergency panel of senior surgeons to handle acute dental pain, knocked-out teeth, jaw injuries, and dental trauma instantly without long waits.'
+  }
+];
+
 export default function App() {
+  // Page states
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [bookingServiceId, setBookingServiceId] = useState<string>('');
   const [bookingDoctorId, setBookingDoctorId] = useState<string>('');
-  
-  // Ref for scrolling to appointment form
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [activeCaseIdx, setActiveCaseIdx] = useState(0);
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [activeReviewIdx, setActiveReviewIdx] = useState(0);
+
+  // Refs for interactive components
+  const beforeAfterContainerRef = useRef<HTMLDivElement>(null);
   const appointmentSectionRef = useRef<HTMLDivElement>(null);
 
-  const scrollToAppointment = (serviceId: string = '', doctorId: string = '') => {
+  // Auto-slide testimonials
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveReviewIdx((prev) => (prev + 1) % REVIEWS.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Section smooth scrolling coordinator
+  const scrollToSection = (id: string, serviceId = '', doctorId = '') => {
     if (serviceId) setBookingServiceId(serviceId);
     if (doctorId) setBookingDoctorId(doctorId);
-    
-    appointmentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+    if (id === 'appointment' && appointmentSectionRef.current) {
+      appointmentSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
-  // Structured Dental Service Categories to keep 15 services highly structured and elegant
-  const serviceCategories = [
-    { id: 'all', name: 'All Specialties' },
-    { id: 'preventative', name: 'Preventative & General', list: ['general-dentistry', 'scaling-polishing', 'dental-filling', 'pediatric-dentistry'] },
-    { id: 'restorative', name: 'Restorative Care', list: ['root-canal', 'dental-implants', 'dentures', 'crowns-bridges'] },
-    { id: 'cosmetic', name: 'Cosmetic & Aesthetic', list: ['teeth-whitening', 'smile-makeover', 'cosmetic-dentistry', 'aligners', 'braces'] },
-    { id: 'surgical', name: 'Surgical & Advanced', list: ['tooth-extraction', 'oral-surgery'] }
-  ];
+  // Drag comparison slider handlers
+  const handleBeforeAfterMove = (clientX: number) => {
+    if (!beforeAfterContainerRef.current) return;
+    const rect = beforeAfterContainerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(position);
+  };
 
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches[0]) {
+      handleBeforeAfterMove(e.touches[0].clientX);
+    }
+  };
 
-  const getFilteredServices = () => {
-    if (activeCategoryFilter === 'all') return SERVICES;
-    const currentCategory = serviceCategories.find(cat => cat.id === activeCategoryFilter);
-    if (!currentCategory || !currentCategory.list) return SERVICES;
-    return SERVICES.filter(service => currentCategory.list.includes(service.id));
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (e.buttons === 1) { // Left click held
+      handleBeforeAfterMove(e.clientX);
+    }
+  };
+
+  const handlePrevReview = () => {
+    setActiveReviewIdx((prev) => (prev - 1 + REVIEWS.length) % REVIEWS.length);
+  };
+
+  const handleNextReview = () => {
+    setActiveReviewIdx((prev) => (prev + 1) % REVIEWS.length);
   };
 
   return (
-    <div className="min-h-screen bg-clinic-bg text-text-dark font-sans selection:bg-primary selection:text-white relative">
+    <div className="min-h-screen bg-clinic-bg text-gray-900 font-sans flex flex-col relative selection:bg-primary selection:text-white">
       
-      {/* 1. Navbar */}
-      <Navbar onBookClick={() => scrollToAppointment()} />
+      {/* 1. Sticky Glassmorphism Navigation Bar */}
+      <Navbar onBookClick={() => scrollToSection('appointment')} />
 
-      {/* Floating Action Buttons for quick conversions */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
-        {/* Call Floating button */}
-        <motion.a
-          href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/30 cursor-pointer border border-white/20 hover:bg-primary/95 transition-all"
-          title="Call Clinic"
-        >
-          <Phone size={18} className="animate-pulse" />
-        </motion.a>
+      {/* Main Container */}
+      <main className="flex-1 w-full flex flex-col pt-16">
 
-        {/* WhatsApp Floating button */}
-        <motion.a
-          href="https://wa.me/919450456789"
-          target="_blank"
-          referrerPolicy="no-referrer"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 cursor-pointer border border-white/20 hover:bg-green-600 transition-all"
-          title="WhatsApp Us"
-        >
-          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.588 2.03 14.113.999 11.989 1c-5.444 0-9.873 4.38-9.877 9.808-.002 1.761.477 3.481 1.392 5.016l-1.018 3.72 3.837-.992c1.512.831 3.167 1.272 4.724 1.272zm11.758-7.795c-.307-.154-1.815-.895-2.097-.996-.282-.102-.487-.154-.691.154-.204.307-.79.996-.968 1.201-.179.204-.359.227-.666.074-.307-.153-1.298-.478-2.472-1.524-.913-.812-1.53-1.817-1.71-2.124-.179-.307-.019-.472.134-.625.138-.138.307-.359.461-.539.154-.179.204-.307.307-.513.102-.204.051-.384-.025-.539-.077-.154-.691-1.666-.947-2.28-.249-.611-.523-.529-.691-.529-.179-.001-.384-.001-.59-.001-.204 0-.539.077-.82.384-.282.307-1.077 1.051-1.077 2.561s1.102 2.971 1.255 3.176c.154.204 2.169 3.311 5.253 4.641.734.316 1.307.505 1.751.645.738.234 1.41.201 1.942.121.593-.089 1.815-.743 2.071-1.46.256-.717.256-1.332.179-1.46-.076-.128-.281-.205-.588-.359z" />
-          </svg>
-        </motion.a>
-      </div>
+        {/* 2. Hero Section */}
+        <section id="home" className="relative min-h-[85vh] flex items-center justify-center py-20 bg-gray-900 overflow-hidden">
+          {/* Full-bleed background image */}
+          <div className="absolute inset-0">
+            <img 
+              src={CLINIC_IMAGES.exterior} 
+              alt="Oral Care Centre Gorakhpur Hospital Front" 
+              className="w-full h-full object-cover filter brightness-95 contrast-100 saturate-105"
+              referrerPolicy="no-referrer"
+            />
+            {/* Dark elegant contrast overlay for clean readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-950/95 via-gray-900/60 to-gray-900/75" />
+          </div>
 
-      {/* 2. Stunning Hero Section */}
-      <section id="home" className="relative min-h-screen flex items-center justify-center pt-28 pb-20 overflow-hidden">
-        {/* Full-Clarity Clinic Exterior Background Image */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src={CLINIC_IMAGES.exterior}
-            alt="Oral Care Centre Premium Hospital Front Elevation"
-            className="w-full h-full object-cover filter brightness-100 contrast-105 saturate-110"
-            referrerPolicy="no-referrer"
-          />
-          {/* Subtle ambient overlay to keep the buttons highly readable */}
-          <div className="absolute inset-0 bg-black/5" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="max-w-3xl mx-auto text-center">
+          {/* Hero Content (Centered) */}
+          <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 flex flex-col items-center justify-center">
             
-            {/* Transparent elegant text container without the white card background */}
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
-              className="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 relative"
+            {/* Visual Trust Badges */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-wrap items-center justify-center gap-2"
             >
-              
-              {/* Centered Hero Headlines */}
-              <div className="space-y-6">
-                {/* Action Buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-3"
-                >
-                  <button
-                    onClick={() => scrollToAppointment()}
-                    className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-primary/95 text-white font-display font-semibold rounded-2xl shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all active:scale-98 cursor-pointer text-sm"
-                  >
-                    Book Appointment
-                  </button>
-                  <a
-                    href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
-                    className="w-full sm:w-auto px-7 py-4 bg-white/90 hover:bg-white text-gray-900 font-display font-semibold rounded-2xl shadow-md border border-gray-100 hover:border-gray-200 text-center transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-xs"
-                  >
-                    <Phone size={14} className="text-primary" />
-                    Call Now
-                  </a>
-                  <a
-                    href="https://wa.me/919450456789"
-                    target="_blank"
-                    referrerPolicy="no-referrer"
-                    className="w-full sm:w-auto px-7 py-4 bg-green-50/90 hover:bg-green-100/90 text-green-700 font-display font-semibold rounded-2xl text-center transition-all flex items-center justify-center gap-2 text-sm backdrop-blur-xs"
-                  >
-                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.588 2.03 14.113.999 11.989 1c-5.444 0-9.873 4.38-9.877 9.808-.002 1.761.477 3.481 1.392 5.016l-1.018 3.72 3.837-.992c1.512.831 3.167 1.272 4.724 1.272zm11.758-7.795c-.307-.154-1.815-.895-2.097-.996-.282-.102-.487-.154-.691.154-.204.307-.79.996-.968 1.201-.179.204-.359.227-.666.074-.307-.153-1.298-.478-2.472-1.524-.913-.812-1.53-1.817-1.71-2.124-.179-.307-.019-.472.134-.625.138-.138.307-.359.461-.539.154-.179.204-.307.307-.513.102-.204.051-.384-.025-.539-.077-.154-.691-1.666-.947-2.28-.249-.611-.523-.529-.691-.529-.179-.001-.384-.001-.59-.001-.204 0-.539.077-.82.384-.282.307-1.077 1.051-1.077 2.561s1.102 2.971 1.255 3.176c.154.204 2.169 3.311 5.253 4.641.734.316 1.307.505 1.751.645.738.234 1.41.201 1.942.121.593-.089 1.815-.743 2.071-1.46.256-.717.256-1.332.179-1.46-.076-.128-.281-.205-.588-.359z" />
-                    </svg>
-                    WhatsApp Us
-                  </a>
-                </motion.div>
+              <span className="text-[10px] sm:text-xs font-black text-white bg-primary px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                ⭐ 4.9 Clinic Rating
+              </span>
+              <span className="text-[10px] sm:text-xs font-black text-white bg-green-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                ISO 9001 Certified
+              </span>
+              <span className="text-[10px] sm:text-xs font-black text-white bg-secondary px-3 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                25+ Years of Excellence
+              </span>
+            </motion.div>
 
-                {/* Sub-Taglines */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                  className="flex items-center justify-center gap-4 pt-4 text-xs font-semibold text-gray-700"
-                >
-                  <div className="flex items-center gap-1">
-                    <Star className="text-yellow-400 fill-yellow-400" size={14} />
-                    <span className="text-gray-900 font-bold">4.9 Star</span> Clinic
-                  </div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                  <div>ISO 9001 Certified</div>
-                </motion.div>
-              </div>
+            {/* Main Headline */}
+            <div className="space-y-4 max-w-3xl">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-4xl sm:text-6xl md:text-7xl font-display font-black tracking-tight text-white leading-tight"
+              >
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-300">
+                  Oral Care Centre
+                </span>
+              </motion.h1>
+            </div>
+
+            {/* Call-To-Action Buttons */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex flex-col sm:flex-row gap-3.5 w-full sm:w-auto pt-2"
+            >
+              <button 
+                onClick={() => scrollToSection('appointment')}
+                className="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-display font-black text-sm rounded-xl text-center shadow-lg shadow-primary/30 hover:shadow-primary/45 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Calendar size={16} />
+                Book Appointment
+              </button>
+              
+              <a 
+                href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
+                className="px-6 py-4 bg-white/20 hover:bg-white/30 border border-white/30 text-white font-display font-bold text-sm rounded-xl text-center flex items-center justify-center gap-2 backdrop-blur-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                <Phone size={16} className="text-accent" />
+                Call Hospital
+              </a>
+              
+              <a 
+                href="https://wa.me/919450456789"
+                target="_blank"
+                referrerPolicy="no-referrer"
+                className="px-6 py-4 bg-green-500 hover:bg-green-600 text-white font-display font-bold text-sm rounded-xl text-center flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-green-950/20"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.73-1.45L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.963C16.588 2.03 14.113.999 11.989 1c-5.444 0-9.873 4.38-9.877 9.808-.002 1.761.477 3.481 1.392 5.016l-1.018 3.72 3.837-.992c1.512.831 3.167 1.272 4.724 1.272zm11.758-7.795c-.307-.154-1.815-.895-2.097-.996-.282-.102-.487-.154-.691.154-.204.307-.79.996-.968 1.201-.179.204-.359.227-.666.074-.307-.153-1.298-.478-2.472-1.524-.913-.812-1.53-1.817-1.71-2.124-.179-.307-.019-.472.134-.625.138-.138.307-.359.461-.539.154-.179.204-.307.307-.513.102-.204.051-.384-.025-.539-.077-.154-.691-1.666-.947-2.28-.249-.611-.523-.529-.691-.529-.179-.001-.384-.001-.59-.001-.204 0-.539.077-.82.384-.282.307-1.077 1.051-1.077 2.561s1.102 2.971 1.255 3.176c.154.204 2.169 3.311 5.253 4.641.734.316 1.307.505 1.751.645.738.234 1.41.201 1.942.121.593-.089 1.815-.743 2.071-1.46.256-.717.256-1.332.179-1.46-.076-.128-.281-.205-.588-.359z" />
+                </svg>
+                WhatsApp GKP
+              </a>
             </motion.div>
 
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 3. TRUST STATISTICS RIBBON */}
-      <section className="relative z-20 py-10 bg-white border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
-            {TRUST_FACTS.map((fact, index) => (
-              <div key={index} className="pt-6 first:pt-0 lg:pt-0 lg:px-6 first:px-0 text-center lg:text-left space-y-1">
-                <span className="text-3xl sm:text-4xl font-display font-extrabold text-primary block">
-                  {fact.value}
-                </span>
-                <span className="text-sm font-bold text-gray-900 block font-poppins">
-                  {fact.label}
-                </span>
-                <span className="text-xs text-gray-400 block font-sans">
-                  {fact.desc}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. ABOUT SECTION */}
-      <section id="about" className="py-20 sm:py-28 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center">
+        {/* 3. Quick Actions Row Grid */}
+        <section id="quick-actions" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             
-            {/* Left Side Images Collage */}
-            <div className="lg:col-span-6 relative">
-              <div className="grid grid-cols-2 gap-4">
-                <motion.div
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                  className="rounded-2xl overflow-hidden aspect-3/4 shadow-md bg-clinic-bg"
-                >
-                  <img
-                    src={CLINIC_IMAGES.treatment}
-                    alt="Pristine Dental Treatment Room"
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                </motion.div>
-                <div className="space-y-4 pt-8">
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    className="rounded-2xl overflow-hidden aspect-1 shadow-md bg-clinic-bg"
-                  >
-                    <img
-                      src={CLINIC_IMAGES.reception}
-                      alt="Luxury Lobby waiting lounge"
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    className="bg-primary text-white p-6 rounded-2xl shadow-lg shadow-primary/20 flex flex-col justify-between"
-                  >
-                    <span className="text-xl sm:text-2xl font-display font-extrabold block">
-                      Est. 1990
+            {/* Quick Action 1 */}
+            <button 
+              onClick={() => scrollToSection('appointment')}
+              className="glass-panel p-5 rounded-2xl flex flex-col justify-between h-32 text-left cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group bg-white/80"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors shadow-inner">
+                <Calendar size={18} />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-900 block font-display">Book Appointment</span>
+                <span className="text-[10px] text-gray-500 block font-medium mt-0.5">Instant confirmation desk</span>
+              </div>
+            </button>
+
+            {/* Quick Action 2 */}
+            <a 
+              href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
+              className="glass-panel p-5 rounded-2xl flex flex-col justify-between h-32 text-left cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group bg-white/80"
+            >
+              <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors shadow-inner">
+                <Phone size={18} />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-900 block font-display">Call Hospital</span>
+                <span className="text-[10px] text-gray-500 block font-medium mt-0.5">Direct clinical desks</span>
+              </div>
+            </a>
+
+            {/* Quick Action 3 */}
+            <a 
+              href="https://wa.me/919450456789"
+              target="_blank"
+              referrerPolicy="no-referrer"
+              className="glass-panel p-5 rounded-2xl flex flex-col justify-between h-32 text-left cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group bg-white/80"
+            >
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center group-hover:bg-teal-600 group-hover:text-white transition-colors shadow-inner">
+                <MessageSquare size={18} />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-900 block font-display">WhatsApp Chat</span>
+                <span className="text-[10px] text-gray-500 block font-medium mt-0.5">Instant consultation help</span>
+              </div>
+            </a>
+
+            {/* Quick Action 4 */}
+            <button 
+              onClick={() => scrollToSection('contact')}
+              className="glass-panel p-5 rounded-2xl flex flex-col justify-between h-32 text-left cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg hover:border-primary/30 group bg-white/80"
+            >
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-colors shadow-inner">
+                <MapPin size={18} />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-gray-900 block font-display">Get Directions</span>
+                <span className="text-[10px] text-gray-500 block font-medium mt-0.5">Gorakhpur GPS route</span>
+              </div>
+            </button>
+
+          </div>
+        </section>
+
+        {/* 4. Credentials & Statistics Banner */}
+        <section id="about" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+          <div className="bg-gradient-to-br from-primary via-primary/95 to-secondary text-white rounded-3xl p-8 md:p-12 shadow-xl relative overflow-hidden">
+            {/* Ambient decorative light circle */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full filter blur-3xl -mr-16 -mt-16 pointer-events-none" />
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center relative z-10">
+              {TRUST_FACTS.map((fact, i) => (
+                <div key={i} className="space-y-2 flex flex-col justify-center items-center">
+                  <span className="text-3xl sm:text-5xl font-display font-black tracking-tight block">
+                    {fact.value}
+                  </span>
+                  <div className="space-y-1 max-w-[200px]">
+                    <span className="text-xs sm:text-sm font-bold text-blue-100 uppercase tracking-wider block">
+                      {fact.label}
                     </span>
-                    <span className="text-[11px] font-semibold text-white/80 uppercase tracking-widest mt-2 block">
-                      3+ Decades of Clinical Expertise
+                    <span className="text-[10px] text-blue-200/90 leading-tight block">
+                      {fact.desc}
                     </span>
-                  </motion.div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side Legacy Narrative */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="space-y-2">
-                <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-                  Elite Medical Legacy
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900 leading-tight">
-                  Third Generation Dental Practice <br />
-                  <span className="text-primary font-medium">In Gorakhpur.</span>
-                </h2>
-              </div>
-
-              <div className="space-y-4 text-sm text-gray-600 leading-relaxed font-sans">
-                <p>
-                  Established with a noble vision of elite patient health, <strong>Oral Care Centre</strong> represents over thirty years of outstanding dental care. Our practice spans across three generations of dental specialists, ensuring a beautiful synthesis of unmatched vintage wisdom and ultra-modern digital dentistry techniques.
-                </p>
-                <p>
-                  We are deeply committed to a <strong>patient-first approach</strong>, providing specialized clinical care within a sterile, relaxing, and transparent hospital setting. By combining international standards, advanced diagnostics, and compassionate family-style empathy, we have restored over 10,000 smiles across Gorakhpur and surrounding cities.
-                </p>
-              </div>
-
-              {/* Core Pillars Bullet Points */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4">
-                {[
-                  'Advanced Low-Radiation Digital X-Rays',
-                  'World-Class Class-B Autoclave Sterilization',
-                  'Affordable & Completely Transparent Costs',
-                  'Friendly, Anxiety-Free Environment',
-                  'Specialized Senior Consultant Panel',
-                  'Instant Priorities for Dental Trauma'
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2.5 text-xs font-semibold text-gray-800">
-                    <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
-                    <span>{item}</span>
                   </div>
-                ))}
-              </div>
-
-              <div className="pt-4 flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => scrollToAppointment()}
-                  className="px-6 py-3.5 bg-primary hover:bg-primary/95 text-white font-display font-semibold rounded-xl text-xs transition-all shadow-md shadow-primary/15 hover:shadow-primary/25 cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  Book Instant Timing <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 5. SERVICES SECTION */}
-      <section id="services" className="py-20 sm:py-28 bg-clinic-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-100/60 px-3 py-1 rounded-full">
-              Full Spectrum Dentistry
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              Multi-Speciality Oral Care Services
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              From advanced cosmetic veneers to pain-free digital implant surgeries, find premium clinical solutions designed specifically for your aesthetic and health goals.
-            </p>
-          </div>
-
-          {/* Categorized Filter Tabs to make 15 services highly scannable */}
-          <div className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto">
-            {serviceCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategoryFilter(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
-                  activeCategoryFilter === cat.id
-                    ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                    : 'bg-white hover:bg-gray-50 border-gray-100 text-gray-600'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Grid of services */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-2">
-            <AnimatePresence mode="popLayout">
-              {getFilteredServices().map((service, index) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                  index={index}
-                  onSelect={setSelectedService}
-                  onBook={(id) => scrollToAppointment(id)}
-                />
+                </div>
               ))}
-            </AnimatePresence>
+            </div>
           </div>
+        </section>
 
-          {/* Bottom Trust Badge */}
-          <div className="text-center bg-white border border-gray-100 rounded-2xl p-4 max-w-md mx-auto shadow-sm">
-            <p className="text-xs text-gray-500 font-medium">
-              Need assistance selecting a treatment?{' '}
-              <button onClick={() => scrollToAppointment()} className="text-primary font-bold underline cursor-pointer">
-                Consult with our doctors directly
-              </button>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. WHY CHOOSE US */}
-      <section className="py-20 sm:py-28 bg-white relative overflow-hidden">
-        {/* Soft decorative visual background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/5 rounded-full filter blur-3xl -z-10" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-              Why Choose Oral Care Centre
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              International Standard Dental Care
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              We stand out through absolute precision, top-tier clinical hygiene, clear transparent communication, and three decades of clinical legacy.
-            </p>
-          </div>
-
-          {/* Grid list of reasons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {WHY_CHOOSE_US.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.05 }}
-                className="bg-clinic-bg rounded-2xl p-6 border border-gray-50 hover:border-primary/10 hover:bg-white hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-              >
-                <div className="space-y-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-all">
-                    <Icon name={item.icon} size={20} />
-                  </div>
-                  <h4 className="text-base font-display font-bold text-gray-900">
-                    {item.title}
-                  </h4>
-                  <p className="text-xs text-gray-500 leading-relaxed font-sans">
-                    {item.desc}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Emergency Callout Card */}
-          <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-primary/10 shadow-lg max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="space-y-1.5 text-center sm:text-left">
-              <span className="text-xs font-bold text-red-500 tracking-wide uppercase flex items-center justify-center sm:justify-start gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" /> Urgent Dental Emergency?
+        {/* 5. Why Choose Us (Stripe-Style Grid) */}
+        <section className="bg-white py-16 w-full">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Clinical Excellence
               </span>
-              <h3 className="text-xl sm:text-2xl font-display font-black text-gray-900">
-                Facing severe pain or fractured tooth?
-              </h3>
-              <p className="text-xs text-gray-500 max-w-lg">
-                We prioritize urgent treatments immediately. Our specialized emergency surgical panel is available to handle extreme pain instantly.
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Why Patients Choose Us
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                We combine experienced surgical specialists, modern high-tech facilities, and absolute patient safety systems.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-              <a
-                href={`tel:${CONTACT_DATA.emergencyContact.replace(/\s+/g, '')}`}
-                className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-xs text-center transition-all shadow-md shadow-red-100 flex items-center justify-center gap-1.5"
-              >
-                <Phone size={14} /> Call Emergency: {CONTACT_DATA.emergencyContact.split(' ').slice(2).join(' ')}
-              </a>
-            </div>
-          </div>
 
-        </div>
-      </section>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
+              {WHY_CHOOSE_US.map((item, i) => {
+                // Inline icon resolver matching tailwind
+                const iconsMap: Record<string, React.ReactNode> = {
+                  Cpu: <Cpu size={22} />,
+                  Award: <Award size={22} />,
+                  Heart: <Heart size={22} />,
+                  Sparkles: <Sparkles size={22} />,
+                  CheckCircle: <CheckCircle2 size={22} />,
+                  Shield: <Shield size={22} />,
+                  PhoneCall: <PhoneCall size={22} />,
+                  User: <User size={22} />
+                };
 
-      {/* 7. DOCTORS SECTION */}
-      <section id="doctors" className="py-20 sm:py-28 bg-clinic-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-              Our Expert Panel
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              Meet our Certified Dental Specialists
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Rest assured in the hands of three generations of elite dental specialists holding certified master degrees (MDS) in Prosthodontics, Endodontics, and Orthodontics.
-            </p>
-          </div>
-
-          {/* Doctors profiles cards */}
-          <div className="space-y-8 max-w-5xl mx-auto">
-            {DOCTORS.map((doctor) => (
-              <DoctorCard
-                key={doctor.id}
-                doctor={doctor}
-                onBook={(id) => scrollToAppointment('', id)}
-              />
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* 8. GALLERY SECTION */}
-      <section id="gallery" className="py-20 sm:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-              Visual Tour
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              Oral Care Centre Premium Clinic Gallery
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Browse our state-of-the-art clinic premises, from luxury waiting lounges and sterile surgical suites to high-end dental chairs and equipment.
-            </p>
-          </div>
-
-          {/* Interactive filterable gallery */}
-          <ClinicGallery />
-
-        </div>
-      </section>
-
-      {/* 9. PATIENT REVIEWS SECTION */}
-      <section id="reviews" className="py-20 sm:py-28 bg-clinic-bg overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-              Patient Testimonials
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              What Our Happy Patients Say
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Read authentic feedback from local families and young professionals about their comfortable experiences at our multi-speciality hospital.
-            </p>
-          </div>
-
-          {/* Rating Summary badge */}
-          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm max-w-md mx-auto flex items-center justify-between gap-6">
-            <div className="space-y-1">
-              <span className="text-3xl font-display font-black text-gray-900 block">4.9 / 5.0</span>
-              <div className="flex items-center gap-0.5 text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={16} className="fill-yellow-400" />
-                ))}
-              </div>
-              <span className="text-[10px] text-gray-400 font-semibold block uppercase tracking-wide">
-                Average Google Business Rating
-              </span>
-            </div>
-            <div className="h-12 w-px bg-gray-100" />
-            <div className="text-right space-y-0.5">
-              <span className="text-xs font-bold text-gray-800 block">100% Patient Trust</span>
-              <span className="text-[11px] text-gray-500 block leading-relaxed">
-                Based on 1,500+ patient surveys and feedback forms in Gorakhpur.
-              </span>
-            </div>
-          </div>
-
-          {/* Reviews Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto pt-4">
-            {REVIEWS.map((review, index) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.08 }}
-                className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-100 shadow-md flex flex-col justify-between hover:shadow-lg transition-all"
-              >
-                <div className="space-y-4">
-                  {/* Rating Stars and Date */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-0.5 text-yellow-400">
-                      {[...Array(review.rating)].map((_, idx) => (
-                        <Star key={idx} size={14} className="fill-yellow-400" />
-                      ))}
+                return (
+                  <div 
+                    key={i} 
+                    className="p-6 bg-slate-50 border border-slate-100 rounded-2xl space-y-4 hover:bg-white hover:border-primary/20 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-primary flex items-center justify-center shadow-inner">
+                        {iconsMap[item.icon] || <CheckCircle2 size={22} />}
+                      </div>
+                      <h3 className="text-base font-bold text-gray-900 font-display">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        {item.desc}
+                      </p>
                     </div>
-                    <span className="text-[10px] text-gray-400 font-semibold uppercase font-mono">
-                      {review.date}
-                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        </section>
+
+        {/* 6. Speciality Treatments & Services Grid */}
+        <section id="services" className="py-16 w-full bg-slate-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Full Spectrum Dentistry
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Advanced Speciality Procedures
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                Undergo modern painless dental operations managed by senior MDS specialists matching international hospital standards.
+              </p>
+            </div>
+
+            {/* Beautiful responsive grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {SERVICES.map((service, idx) => (
+                <ServiceCard 
+                  key={service.id}
+                  service={service}
+                  index={idx}
+                  onSelect={setSelectedService}
+                  onBook={(id) => scrollToSection('appointment', id)}
+                />
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+        {/* 7. Clinical Doctors Panel */}
+        <section id="doctors" className="py-16 w-full bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                MDS Specialist Board
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Meet Our Expert Dental Board
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                Bespoke, compassionate healing delivered by three generations of senior oral surgical and cosmetic design practitioners.
+              </p>
+            </div>
+
+            {/* Doctors stack list */}
+            <div className="space-y-8 max-w-5xl mx-auto pt-4">
+              {DOCTORS.map((doc) => (
+                <DoctorCard 
+                  key={doc.id}
+                  doctor={doc}
+                  onBook={(id) => scrollToSection('appointment', '', id)}
+                />
+              ))}
+            </div>
+
+          </div>
+        </section>
+
+        {/* 8. Clinic Digital Gallery (Interactive filter) */}
+        <section id="gallery" className="py-16 w-full bg-slate-50 border-t border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Sterile Environment
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Explore Our Modern Clinic Tour
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                Witness our absolute clean, Class-B autoclave medical environments, and high-tech diagnostics operatory centers.
+              </p>
+            </div>
+
+            {/* Core Gallery Component */}
+            <div className="pt-4">
+              <ClinicGallery />
+            </div>
+
+          </div>
+        </section>
+
+        {/* 9. Before & After Cases (Interactive Split Slider) */}
+        <section id="before-after" className="py-16 bg-white w-full">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Transformational Care
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Smile Transformations Slider
+              </h2>
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                Hold the white arrow button and drag to witness real surgical outcomes and alignment makeovers.
+              </p>
+            </div>
+
+            <div className="lg:grid lg:grid-cols-12 gap-12 items-center bg-slate-50 p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl max-w-6xl mx-auto">
+              {/* Left Column: Split Slider frame */}
+              <div className="lg:col-span-7 flex flex-col items-center">
+                <div 
+                  ref={beforeAfterContainerRef}
+                  className="relative w-full aspect-4/3 rounded-2xl overflow-hidden select-none cursor-ew-resize border border-gray-200/60 shadow-xl bg-slate-200"
+                  onMouseMove={handleMouseMove}
+                  onTouchMove={handleTouchMove}
+                  onMouseDown={(e) => handleBeforeAfterMove(e.clientX)}
+                >
+                  {/* After Image (Full block) */}
+                  <img 
+                    src={BEFORE_AFTER_CASES[activeCaseIdx].afterImage} 
+                    alt="After Dental Restoration" 
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute right-4 bottom-4 bg-primary text-white font-black text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md z-10">
+                    After Care
                   </div>
 
-                  {/* Review Text */}
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed italic font-sans">
-                    "{review.text}"
+                  {/* Before Image Overlay (Clipped) */}
+                  <div 
+                    className="absolute inset-y-0 left-0 overflow-hidden pointer-events-none z-10 border-r-2 border-white/60"
+                    style={{ width: `${sliderPosition}%` }}
+                  >
+                    <img 
+                      src={BEFORE_AFTER_CASES[activeCaseIdx].beforeImage} 
+                      alt="Before Care" 
+                      className="absolute inset-y-0 left-0 object-cover max-w-none pointer-events-none"
+                      style={{ 
+                        width: beforeAfterContainerRef.current?.getBoundingClientRect().width || '100%',
+                        height: '100%' 
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute left-4 bottom-4 bg-gray-950/80 text-white font-black text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">
+                      Before Treatment
+                    </div>
+                  </div>
+
+                  {/* Drag Control Line Bar */}
+                  <div 
+                    className="absolute inset-y-0 w-1 bg-white shadow-[0_0_10px_rgba(0,0,0,0.5)] flex items-center justify-center pointer-events-none z-20"
+                    style={{ left: `${sliderPosition}%` }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white text-primary flex items-center justify-center shadow-2xl border border-gray-100 pointer-events-none text-sm font-black">
+                      ↔
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Case description & Selector buttons */}
+              <div className="lg:col-span-5 space-y-6 mt-8 lg:mt-0">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">Case Clinical Selection</span>
+                  
+                  {/* Tabs */}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {BEFORE_AFTER_CASES.map((item, idx) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveCaseIdx(idx);
+                          setSliderPosition(50);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                          activeCaseIdx === idx 
+                            ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                            : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-100'
+                        }`}
+                      >
+                        {item.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Case Caption box */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                  <div className="flex justify-between items-center border-b border-gray-50 pb-2.5">
+                    <h4 className="text-lg font-bold font-display text-gray-900">
+                      {BEFORE_AFTER_CASES[activeCaseIdx].title}
+                    </h4>
+                    <span className="text-[10px] font-black text-green-600 bg-green-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      {BEFORE_AFTER_CASES[activeCaseIdx].stats}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed font-sans">
+                    {BEFORE_AFTER_CASES[activeCaseIdx].desc}
                   </p>
                 </div>
+              </div>
+            </div>
 
-                {/* User Info */}
-                <div className="flex items-center gap-3 pt-6 mt-6 border-t border-gray-50">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-10 h-10 rounded-full object-cover shadow-inner"
+          </div>
+        </section>
+
+        {/* 10. Patient Testimonials Slider */}
+        <section id="reviews" className="py-16 w-full bg-slate-50 border-t border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+            
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Testimonials
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                What Our Patients Say
+              </h2>
+            </div>
+
+            {/* Swipe container card */}
+            <div className="bg-white rounded-3xl p-6 sm:p-10 border border-gray-100 shadow-xl relative overflow-hidden max-w-3xl mx-auto min-h-[220px] flex flex-col justify-between">
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-0.5 text-yellow-400">
+                    {[...Array(REVIEWS[activeReviewIdx].rating)].map((_, i) => (
+                      <Star key={i} size={14} className="fill-yellow-400" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] sm:text-xs text-gray-400 font-bold font-mono">
+                    {REVIEWS[activeReviewIdx].date}
+                  </span>
+                </div>
+                
+                <p className="text-sm sm:text-base text-gray-700 italic leading-relaxed font-sans">
+                  "{REVIEWS[activeReviewIdx].text}"
+                </p>
+              </div>
+
+              {/* Reviewer detail */}
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-6">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={REVIEWS[activeReviewIdx].avatar} 
+                    alt={REVIEWS[activeReviewIdx].name} 
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200"
                     referrerPolicy="no-referrer"
-                    loading="lazy"
                   />
                   <div>
-                    <h5 className="text-sm font-bold text-gray-900">{review.name}</h5>
-                    <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Verified Patient</span>
+                    <h5 className="text-xs sm:text-sm font-bold text-gray-900 font-display">
+                      {REVIEWS[activeReviewIdx].name}
+                    </h5>
+                    <span className="text-[9px] sm:text-xs text-green-600 font-bold uppercase tracking-widest block">
+                      Google Verified Patient
+                    </span>
                   </div>
                 </div>
-              </motion.div>
-            ))}
+                
+                {/* Controllers */}
+                <div className="flex gap-1.5">
+                  <button 
+                    onClick={handlePrevReview}
+                    className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-gray-700 font-bold flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    ‹
+                  </button>
+                  <button 
+                    onClick={handleNextReview}
+                    className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-gray-700 font-bold flex items-center justify-center transition-all cursor-pointer"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
           </div>
+        </section>
 
-        </div>
-      </section>
-
-      {/* 10. BOOK APPOINTMENT INTERACTIVE SECTION */}
-      <section id="appointment-booking-section" ref={appointmentSectionRef} className="py-20 sm:py-28 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 sm:gap-16 items-center">
+        {/* 11. FAQ Accordion Block */}
+        <section className="py-16 w-full bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
             
-            {/* Left Column copywriting */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="space-y-2">
-                <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full inline-block">
-                  Priority Timings
-                </span>
-                <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900 leading-tight">
-                  Restore Your Smile <br />
-                  <span className="text-primary font-medium">Without Long Waiting.</span>
-                </h2>
-              </div>
+            <div className="text-center space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Patient Info Portal
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Frequently Asked Questions
+              </h2>
+            </div>
 
-              <div className="space-y-4 text-sm text-gray-600 leading-relaxed font-sans">
-                <p>
-                  At Oral Care Centre, we value your tight schedule. We offer specialized priority appointments to completely eliminate tiresome wait-room intervals.
-                </p>
-                <p>
-                  Simply complete our secure form to choose your preferred date, select your treatment category, and optionally pick your target doctor. Once done, our coordinator will reach out directly to confirm your exact timing.
-                </p>
-              </div>
-
-              {/* Trust parameters */}
-              <div className="space-y-3.5 border-t border-gray-100 pt-6">
-                {[
-                  'Instant digital confirmation via SMS & WhatsApp.',
-                  'No hidden charges. Clear diagnostics and quotes.',
-                  'Flexible booking adjustments or cancellations.',
-                  'Spacious waiting area with luxury amenities.'
-                ].map((txt, index) => (
-                  <div key={index} className="flex items-start gap-2.5 text-xs text-gray-700 font-semibold">
-                    <span className="w-5 h-5 rounded-full bg-blue-50 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                      ✓
+            <div className="space-y-3.5">
+              {CLINIC_FAQS.map((faq, idx) => (
+                <div 
+                  key={idx}
+                  className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden transition-all"
+                >
+                  <button
+                    onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
+                    className="w-full p-5 flex justify-between items-center text-left focus:outline-none cursor-pointer"
+                  >
+                    <span className="text-xs sm:text-sm font-bold text-gray-800 pr-2 font-display">
+                      {faq.question}
                     </span>
-                    <span>{txt}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right Column appointment booking form */}
-            <div className="lg:col-span-7">
-              <AppointmentForm 
-                initialServiceId={bookingServiceId} 
-                initialDoctorId={bookingDoctorId}
-                onSuccess={() => {
-                  // Trigger scroll slightly to see receipt
-                  setTimeout(() => {
-                    appointmentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                  }, 100);
-                }}
-              />
+                    {activeFaq === idx ? (
+                      <ChevronUp size={16} className="text-primary flex-shrink-0" />
+                    ) : (
+                      <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />
+                    )}
+                  </button>
+                  
+                  <AnimatePresence initial={false}>
+                    {activeFaq === idx && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-500 leading-relaxed border-t border-slate-100/50">
+                          {faq.answer}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
             </div>
 
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 11. CONTACT AND DIRECTIONS SECTION */}
-      <section id="contact" className="py-20 sm:py-28 bg-clinic-bg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold tracking-widest text-primary uppercase bg-blue-50 px-3 py-1 rounded-full">
-              Location & Details
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-display font-black text-gray-900">
-              Get in Touch or Visit Our Clinic
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Easily accessible in the heart of Gorakhpur on Jogia Road. Reach out via call, email, or WhatsApp instantly.
-            </p>
+        {/* 12. Direct Appointment Form Booking */}
+        <section id="appointment" ref={appointmentSectionRef} className="py-16 bg-slate-50 border-t border-b border-gray-100 w-full">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <AppointmentForm 
+              initialServiceId={bookingServiceId}
+              initialDoctorId={bookingDoctorId}
+              onSuccess={() => {
+                setTimeout(() => {
+                  if (appointmentSectionRef.current) {
+                    appointmentSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }, 100);
+              }}
+            />
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        {/* 13. Visit Coordinates & Live Google Map */}
+        <section id="contact" className="py-16 bg-white w-full">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             
-            {/* Left side details blocks */}
-            <div className="lg:col-span-5 space-y-6 flex flex-col justify-between">
-              <div className="space-y-4">
-                <h3 className="text-xl font-display font-bold text-gray-900 border-b border-gray-200 pb-3">
-                  Clinic Credentials
-                </h3>
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <span className="text-xs font-bold uppercase tracking-widest text-primary bg-primary/5 px-3 py-1.5 rounded-full">
+                Visit coordinates
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-gray-900">
+                Directions & Timings
+              </h2>
+            </div>
 
-                {/* Opening Hours list */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3 font-sans">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Clock size={12} className="text-primary" />
-                    Opening Hours & Timings
+            <div className="lg:grid lg:grid-cols-2 gap-12 items-stretch max-w-6xl mx-auto">
+              {/* Left column: Information block cards */}
+              <div className="space-y-4 flex flex-col justify-between">
+                
+                {/* Card 1: Timings */}
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 font-mono">
+                    <Clock size={16} className="text-primary" />
+                    Clinic Consultations Timings
                   </h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between border-b border-gray-50 pb-1.5">
-                      <span className="text-gray-500 font-medium">Monday - Friday</span>
-                      <span className="font-bold text-gray-800">{CONTACT_DATA.openingHours.weekdays}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-gray-50 pb-1.5">
-                      <span className="text-gray-500 font-medium">Saturday</span>
-                      <span className="font-bold text-gray-800">{CONTACT_DATA.openingHours.saturday}</span>
+                  <div className="space-y-2 text-xs sm:text-sm">
+                    <div className="flex justify-between border-b border-gray-100/60 pb-1.5">
+                      <span className="text-gray-500 font-medium">Monday - Saturday</span>
+                      <span className="font-bold text-gray-800">10:00 AM - 02:00 PM, 05:00 - 08:30 PM</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500 font-medium">Sunday</span>
-                      <span className="font-bold text-primary">{CONTACT_DATA.openingHours.sunday}</span>
+                      <span className="font-bold text-primary">10:00 AM - 01:30 PM (By Appointment Only)</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Contact Points list */}
-                <div className="grid grid-cols-1 gap-4">
-                  {/* Address */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-3 items-start">
-                    <div className="w-9 h-9 rounded-lg bg-blue-50 text-primary flex items-center justify-center flex-shrink-0">
-                      <MapPin size={16} />
-                    </div>
-                    <div>
-                      <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Clinic Address</h5>
-                      <p className="text-xs font-semibold text-gray-800 mt-1 leading-relaxed">
-                        {CONTACT_DATA.address}
-                      </p>
-                      <a 
-                        href="https://maps.google.com" 
-                        target="_blank" 
-                        className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5 mt-1"
-                      >
-                        Open in Google Maps <ExternalLink size={10} />
-                      </a>
-                    </div>
+                {/* Card 2: Location Address */}
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center flex-shrink-0 shadow-inner">
+                    <MapPin size={18} />
                   </div>
-
-                  {/* Phone & WhatsApp */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-3 items-start">
-                    <div className="w-9 h-9 rounded-lg bg-green-50 text-green-500 flex items-center justify-center flex-shrink-0">
-                      <Phone size={16} />
-                    </div>
-                    <div>
-                      <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Phone & WhatsApp</h5>
-                      <p className="text-xs font-bold text-gray-800 mt-1">
-                        Clinic Number: <a href={`tel:${CONTACT_DATA.phone}`} className="text-primary hover:underline">{CONTACT_DATA.phone}</a>
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        WhatsApp Live Chat available during opening hours.
-                      </p>
-                    </div>
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">Hospital Address</h5>
+                    <p className="text-xs sm:text-sm font-semibold text-gray-800 leading-relaxed">
+                      {CONTACT_DATA.address}
+                    </p>
+                    <a 
+                      href="https://maps.google.com" 
+                      target="_blank" 
+                      className="text-xs font-bold text-primary hover:underline flex items-center gap-1 mt-1"
+                    >
+                      Open in Google Maps <ExternalLink size={11} />
+                    </a>
                   </div>
                 </div>
+
+                {/* Card 3: Trauma Support */}
+                <div className="bg-red-50/50 p-6 rounded-2xl border border-red-100 flex gap-4 items-start">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 shadow-inner">
+                    <ShieldAlert size={18} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h5 className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">Emergency Desk</h5>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      Licensed Dental Surgeons • State Registered Trauma Facility. Lic. GKP/MED/DEN-1092.
+                    </p>
+                    <p className="text-sm font-black text-red-600">
+                      Call Trauma Desk: {CONTACT_DATA.emergencyContact}
+                    </p>
+                  </div>
+                </div>
+
               </div>
 
-              {/* Professional medical certificate line */}
-              <div className="text-xs text-gray-500 bg-white/50 border border-gray-100 p-4 rounded-xl flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-green-500 flex-shrink-0" />
-                <p>Registered Healthcare Facility. License No. GKP/MED/DEN-1092. Gorakhpur Medical Council.</p>
+              {/* Right column: Embed Google Maps */}
+              <div className="w-full min-h-[300px] lg:min-h-full rounded-2xl overflow-hidden border border-gray-200/60 shadow-lg relative mt-6 lg:mt-0">
+                <iframe
+                  title="Oral Care Centre Google Map Location"
+                  src={CONTACT_DATA.mapEmbedUrl}
+                  className="w-full h-full border-0 absolute inset-0"
+                  allowFullScreen={false}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                ></iframe>
               </div>
-            </div>
-
-            {/* Right side Google Maps iframe */}
-            <div className="lg:col-span-7 h-[400px] lg:h-auto min-h-[350px] rounded-3xl overflow-hidden border border-gray-200 shadow-lg bg-white relative">
-              <iframe
-                title="Oral Care Centre Google Map Location"
-                src={CONTACT_DATA.mapEmbedUrl}
-                className="w-full h-full border-0 absolute inset-0"
-                allowFullScreen={false}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              ></iframe>
             </div>
 
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 12. DENTAL FOOTER */}
-      <footer className="bg-gray-950 text-white pt-16 pb-8 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      </main>
+
+      {/* 14. Professional Footer */}
+      <footer className="bg-gray-950 text-white pt-12 pb-20 md:pb-12 border-t border-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
-          {/* Main Footer grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8">
-            
-            {/* Branding Column */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-display font-extrabold shadow-md">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+            {/* Column 1 */}
+            <div className="md:col-span-5 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-display font-extrabold text-base">
                   OC
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-base sm:text-lg font-display font-black tracking-tight">
-                    ORAL CARE CENTRE
-                  </span>
-                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-primary/80 -mt-1">
-                    Third Generation Practice
-                  </span>
+                  <span className="text-base font-display font-black tracking-tight">ORAL CARE CENTRE</span>
+                  <span className="text-[10px] font-sans font-bold uppercase text-primary/80 -mt-1">Third Generation Practice</span>
                 </div>
               </div>
+
               <p className="text-xs text-gray-400 leading-relaxed max-w-sm">
-                Providing advanced multi-speciality oral solutions in Gorakhpur. Over thirty years of dental healing excellence and family trust since 1990.
+                Providing advanced multi-speciality oral solutions in Gorakhpur with high-tech diagnostic systems, sterilization and generation trust.
               </p>
-              <div className="flex gap-2">
-                <a 
-                  href="https://wa.me/919450456789" 
-                  target="_blank" 
-                  className="w-8 h-8 rounded-lg bg-gray-900 hover:bg-green-600 transition-colors flex items-center justify-center text-gray-400 hover:text-white"
-                >
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M12.004 2.012c-5.508 0-9.988 4.479-9.988 9.988 0 1.761.46 3.41 1.261 4.856L2 22l5.312-1.391a9.92 9.92 0 004.692 1.18c5.508 0 9.988-4.479 9.988-9.988s-4.479-9.989-9.988-9.989zm6.262 14.15c-.256.717-1.478 1.371-2.071 1.46-.532.08-1.204.113-1.942-.121-3.084-1.33-5.099-4.437-5.253-4.641-.153-.205-1.255-1.666-1.255-3.176s.815-2.254 1.077-2.561c.281-.307.616-.384.82-.384.206 0 .411 0 .59.001.168 0 .442-.082.691.529.256.614.947 2.28.947 2.28.076.155.127.335.025.539-.103.206-.153.334-.307.513-.154.18-.323.401-.461.539-.153.153-.313.318-.134.625.18.307.797 1.312 1.71 2.124 1.174 1.046 2.165 1.371 2.472 1.524.307.154.487.13.666-.074.178-.205.764-.894.968-1.201.204-.308.409-.256.691-.154.282.101 1.79.842 2.097.996.307.154.512.231.588.359.077.128.077.743-.179 1.46z" />
-                  </svg>
-                </a>
-              </div>
             </div>
 
-            {/* Quick Links Column */}
-            <div className="lg:col-span-2 space-y-4">
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Quick Links</h4>
+            {/* Column 2 */}
+            <div className="md:col-span-4 space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">Speciality Treatments</h4>
               <ul className="space-y-2 text-xs text-gray-400">
-                <li><a href="#home" className="hover:text-primary transition-colors">Home Dashboard</a></li>
-                <li><a href="#about" className="hover:text-primary transition-colors">About Legacy</a></li>
-                <li><a href="#services" className="hover:text-primary transition-colors">Treatments & Services</a></li>
-                <li><a href="#doctors" className="hover:text-primary transition-colors">Specialist Team</a></li>
-                <li><a href="#gallery" className="hover:text-primary transition-colors">Clinic Gallery</a></li>
-                <li><a href="#reviews" className="hover:text-primary transition-colors">Patient Reviews</a></li>
+                <li><button onClick={() => scrollToSection('services')} className="hover:text-primary transition-all text-left">Dental Implants & Prosthetics</button></li>
+                <li><button onClick={() => scrollToSection('services')} className="hover:text-primary transition-all text-left">Rotary Micro-Endodontics</button></li>
+                <li><button onClick={() => scrollToSection('services')} className="hover:text-primary transition-all text-left">Digital Clear Aligners</button></li>
+                <li><button onClick={() => scrollToSection('services')} className="hover:text-primary transition-all text-left">Bespoke Aesthetic Smile Makeovers</button></li>
               </ul>
             </div>
 
-            {/* Specialities Quick links */}
-            <div className="lg:col-span-3 space-y-4">
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Top Specialties</h4>
-              <ul className="space-y-2 text-xs text-gray-400">
-                <li><a href="#services" className="hover:text-primary transition-colors">Digital Dental Implants</a></li>
-                <li><a href="#services" className="hover:text-primary transition-colors">Painless Root Canals</a></li>
-                <li><a href="#services" className="hover:text-primary transition-colors">Clear Dental Aligners</a></li>
-                <li><a href="#services" className="hover:text-primary transition-colors">Aesthetic Smile Makeover</a></li>
-                <li><a href="#services" className="hover:text-primary transition-colors">Pediatric Cavity Sealants</a></li>
-              </ul>
+            {/* Column 3 */}
+            <div className="md:col-span-3 space-y-3">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider font-display">Direct Contacts</h4>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Maili Nawa, Jogia Road, Gorakhpur, UP - 273001
+              </p>
+              <p className="text-sm font-bold text-primary font-display">{CONTACT_DATA.phone}</p>
             </div>
-
-            {/* Contact Location info Column */}
-            <div className="lg:col-span-3 space-y-4 font-sans text-xs text-gray-400 leading-relaxed">
-              <h4 className="text-xs font-bold text-gray-300 uppercase tracking-widest">Contact Office</h4>
-              <p>Maili Nawa, Jogia Road, Gorakhpur, Uttar Pradesh - 273001</p>
-              <div className="space-y-1 pt-1 text-white">
-                <p className="font-semibold">Call Support:</p>
-                <p className="text-primary font-bold">{CONTACT_DATA.phone}</p>
-              </div>
-              <div className="space-y-1 text-white">
-                <p className="font-semibold">Emergency Trauma:</p>
-                <p className="text-red-400 font-bold">{CONTACT_DATA.emergencyContact}</p>
-              </div>
-            </div>
-
           </div>
 
-          {/* Bottom Copyright & Disclaimer */}
-          <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-4">
-            <p className="text-center sm:text-left">
+          <div className="border-t border-gray-900 pt-6 flex flex-col md:flex-row items-center justify-between text-[10px] text-gray-500 gap-3">
+            <p className="text-center md:text-left">
               &copy; {new Date().getFullYear()} ORAL CARE CENTRE. All Rights Reserved.
             </p>
-            <div className="flex gap-4">
-              <span>Third Generation into Dentistry</span>
-              <span>&bull;</span>
-              <span>Licensed Medical Practitioner GKP</span>
-            </div>
+            <p className="text-center md:text-right font-bold tracking-wider uppercase font-mono">
+              Licensed Dental Practitioners • Gorakhpur Clinical Project
+            </p>
           </div>
 
         </div>
       </footer>
 
-      {/* Dynamic Detail Modal for Selected Services */}
+      {/* 15. Responsive Floating Mobile Action Bar (Non-overlapping) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-100 px-4 py-3 flex justify-between items-center md:hidden shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        {/* Quick WhatsApp */}
+        <a 
+          href="https://wa.me/919450456789"
+          target="_blank"
+          referrerPolicy="no-referrer"
+          className="flex flex-col items-center justify-center p-1 text-green-600 focus:outline-none"
+        >
+          <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12.004 2.012c-5.508 0-9.988 4.479-9.988 9.988 0 1.761.46 3.41 1.261 4.856L2 22l5.312-1.391a9.92 9.92 0 004.692 1.18c5.508 0 9.988-4.479 9.988-9.988s-4.479-9.989-9.988-9.989zm6.262 14.15c-.256.717-1.478 1.371-2.071 1.46-.532.08-1.204.113-1.942-.121-3.084-1.33-5.099-4.437-5.253-4.641-.153-.205-1.255-1.666-1.255-3.176s.815-2.254 1.077-2.561c.281-.307.616-.384.82-.384.206 0 .411 0 .59.001.168 0 .442-.082.691.529.256.614.947 2.28.947 2.28.076.155.127.335.025.539-.103.206-.153.334-.307.513-.154.18-.323.401-.461.539-.153.153-.313.318-.134.625.18.307.797 1.312 1.71 2.124 1.174 1.046 2.165 1.371 2.472 1.524.307.154.487.13.666-.074.178-.205.764-.894.968-1.201.204-.308.409-.256.691-.154.282.101 1.79.842 2.097.996.307.154.512.231.588.359.077.128.077.743-.179 1.46z" />
+          </svg>
+          <span className="text-[8px] font-bold uppercase tracking-wider mt-0.5">WhatsApp</span>
+        </a>
+
+        {/* Quick Call */}
+        <a 
+          href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
+          className="flex flex-col items-center justify-center p-1 text-primary focus:outline-none"
+        >
+          <Phone size={18} />
+          <span className="text-[8px] font-bold uppercase tracking-wider mt-0.5">Call Now</span>
+        </a>
+
+        {/* Big Book Pill */}
+        <button 
+          onClick={() => scrollToSection('appointment')}
+          className="flex-1 max-w-[140px] bg-gradient-to-r from-primary to-secondary text-white font-display font-black text-xs py-2.5 px-3 rounded-xl shadow-md shadow-primary/20 cursor-pointer text-center mx-2 focus:outline-none"
+        >
+          Book Priority
+        </button>
+
+        {/* Back To Top */}
+        <button 
+          onClick={() => scrollToSection('home')}
+          className="flex flex-col items-center justify-center p-1 text-gray-400 hover:text-primary focus:outline-none cursor-pointer"
+        >
+          <div className="w-5 h-5 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100">
+            ↑
+          </div>
+          <span className="text-[8px] font-bold uppercase tracking-wider mt-0.5">Top</span>
+        </button>
+      </div>
+
+      {/* 16. Dynamic Service Details Modal */}
       <ServiceModal
         service={selectedService}
         onClose={() => setSelectedService(null)}
-        onBook={(id) => scrollToAppointment(id)}
+        onBook={(id) => scrollToSection('appointment', id)}
       />
 
     </div>
