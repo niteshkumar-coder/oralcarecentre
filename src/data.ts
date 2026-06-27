@@ -142,7 +142,7 @@ export const DOCTORS: Doctor[] = [
     qualification: 'BDS, MDS (Prosthodontics)',
     experience: '30+ Years of Experience',
     specialization: 'Prosthodontics & Implantology Specialist',
-    image: 'https://picsum.photos/seed/drpn/400/500',
+    image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400',
     bio: 'A visionary in modern dentistry in Gorakhpur. Dr. P.N. Gupta established the clinic with a philosophy of high-tech care and personal healing. He represents the first generation of elite dentistry at Oral Care Centre.'
   },
   {
@@ -152,7 +152,7 @@ export const DOCTORS: Doctor[] = [
     qualification: 'BDS, MDS (Endodontics & Conservative Dentistry)',
     experience: '15+ Years of Experience',
     specialization: 'Micro-Endodontic Specialist & Implantologist',
-    image: 'https://picsum.photos/seed/drmk/400/500',
+    image: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=400',
     bio: 'With over 15 years of surgical brilliance, Dr. M.K. Gupta specializes in painless root canals and complex computer-guided implant surgeries. He combines technical precision with a patient-first approach.'
   },
   {
@@ -162,7 +162,7 @@ export const DOCTORS: Doctor[] = [
     qualification: 'BDS, MDS (Orthodontics & Dentofacial Orthopedics)',
     experience: '8+ Years of Experience',
     specialization: 'Clear Aligners & Facial Aesthetics Expert',
-    image: 'https://picsum.photos/seed/drayushi/400/500',
+    image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=400',
     bio: 'Dedicated to designing stunning smiles. Dr. Ayushi specializes in clear aligners, modern orthodontic braces, and bespoke cosmetic smile makeovers, bringing international standard aesthetic dentistry to Gorakhpur.'
   }
 ];
@@ -201,7 +201,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     text: 'Oral Care Centre has been our family dental clinic for 2 generations. Dr. P.N. Gupta is highly experienced and Dr. M.K. Gupta recently performed a painless root canal on me. Highly recommend for their cleanliness and modern machines!',
     date: '2 weeks ago',
-    avatar: 'https://picsum.photos/seed/user1/100/100'
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100'
   },
   {
     id: 'r2',
@@ -209,7 +209,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     text: 'I underwent a smile makeover with clear aligners from Dr. Ayushi Jaiswal. She is extremely knowledgeable and explained every stage of the treatment with 3D digital scans. The results are amazing, and my confidence is back!',
     date: '1 month ago',
-    avatar: 'https://picsum.photos/seed/user2/100/100'
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100'
   },
   {
     id: 'r3',
@@ -217,7 +217,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     text: 'Extremely clean and state-of-the-art clinic. They follow amazing sterilization steps. I got my dental implants done here, and there was zero discomfort. The fees are also very reasonable for such a premium setup.',
     date: '3 weeks ago',
-    avatar: 'https://picsum.photos/seed/user3/100/100'
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100'
   },
   {
     id: 'r4',

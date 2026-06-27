@@ -32,13 +32,13 @@ export default function Navbar({ onBookClick }: NavbarProps) {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 flex items-center h-[72px] md:h-auto ${
           isScrolled
-            ? 'bg-white/80 backdrop-blur-md shadow-md border-b border-gray-100 py-3'
-            : 'bg-transparent py-5'
+            ? 'bg-white/80 md:bg-white/80 backdrop-blur-md shadow-md border-b border-gray-100 py-0 md:py-3'
+            : 'bg-white/10 md:bg-transparent backdrop-blur-md md:backdrop-blur-none border-b border-white/10 md:border-b-0 py-0 md:py-5'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 flex items-center justify-between w-full">
           
           {/* Logo & Branding */}
           <a href="#home" className="flex items-center gap-2 group">
@@ -51,10 +51,14 @@ export default function Navbar({ onBookClick }: NavbarProps) {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-base sm:text-lg font-display font-black tracking-tight text-gray-900 group-hover:text-primary transition-colors">
+              <span className={`text-base sm:text-lg font-display font-black tracking-tight transition-colors ${
+                isScrolled ? 'text-gray-900' : 'text-white'
+              }`}>
                 ORAL CARE CENTRE
               </span>
-              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-primary/80 -mt-1">
+              <span className={`text-[10px] font-sans font-bold uppercase tracking-wider transition-colors -mt-1 ${
+                isScrolled ? 'text-primary/80' : 'text-blue-200/90'
+              }`}>
                 Third Generation Practice
               </span>
             </div>
@@ -66,10 +70,14 @@ export default function Navbar({ onBookClick }: NavbarProps) {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm font-semibold text-gray-600 hover:text-primary transition-colors relative group py-2"
+                className={`text-sm font-semibold transition-colors relative group py-2 ${
+                  isScrolled ? 'text-gray-600 hover:text-primary' : 'text-white/90 hover:text-white'
+                }`}
               >
                 {link.label}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                <span className={`absolute bottom-0 left-0 w-0 h-0.5 transition-all group-hover:w-full ${
+                  isScrolled ? 'bg-primary' : 'bg-white'
+                }`} />
               </a>
             ))}
           </nav>
@@ -78,32 +86,38 @@ export default function Navbar({ onBookClick }: NavbarProps) {
           <div className="hidden lg:flex items-center gap-4">
             <a
               href={`tel:${CONTACT_DATA.phone.replace(/\s+/g, '')}`}
-              className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-primary/5 transition-all"
+              className={`text-sm font-bold flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all ${
+                isScrolled ? 'text-primary hover:bg-primary/5' : 'text-white hover:bg-white/10'
+              }`}
             >
               <Phone size={14} className="animate-pulse" />
               <span>{CONTACT_DATA.phone}</span>
             </a>
             <button
               onClick={onBookClick}
-              className="bg-primary hover:bg-primary/95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-primary/20 hover:shadow-primary/35 transition-all active:scale-95 cursor-pointer"
+              className={`text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer ${
+                isScrolled 
+                  ? 'bg-primary hover:bg-primary/95 text-white shadow-primary/20' 
+                  : 'bg-white hover:bg-gray-50 text-primary shadow-white/10'
+              }`}
             >
               Book Appointment
             </button>
           </div>
 
           {/* Mobile Menu Trigger */}
-          <div className="flex items-center lg:hidden gap-3">
+          <div className="flex items-center lg:hidden gap-2">
             <button
               onClick={onBookClick}
-              className="bg-primary text-white text-xs font-bold px-3 py-2 rounded-lg shadow-sm cursor-pointer"
+              className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-display font-black text-xs sm:text-sm rounded-xl text-center shadow-md hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
             >
-              Book
+              Book Appointment
             </button>
             <button
               onClick={() => setIsMobileOpen(true)}
-              className="p-2 text-gray-700 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-800 flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm cursor-pointer active:scale-95"
             >
-              <Menu size={22} />
+              <Menu size={18} />
             </button>
           </div>
 
