@@ -215,14 +215,6 @@ export default function App() {
                   Dental Clinic
                 </span>
               </motion.h1>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-xs sm:text-sm md:text-base text-white/85 md:text-gray-300 max-w-[290px] sm:max-w-xl mx-auto leading-relaxed"
-              >
-                Advanced dentistry with modern technology & experienced specialists providing painless, world-class dental care.
-              </motion.p>
             </div>
 
             {/* Call-To-Action Buttons */}
